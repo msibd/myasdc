@@ -1,0 +1,442 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Patient {
+  id           String        @id @default(cuid())
+  name         String
+  phone        String?
+  email        String?
+  age          Int?
+  gender       String?
+  bloodGroup   String?
+  createdAt    DateTime      @default(now())
+  isActive     Boolean       @default(true)
+  archivedAt   DateTime?
+  appointments Appointment[]
+  labOrders    LabOrder[]
+  invoices     Invoice[]
+
+  @@index([isActive, createdAt(sort: Desc)])
+}
+
+model Doctor {
+  id                 String        @id @default(cuid())
+  name               String
+  specialty          String?
+  qualification      String?
+  registrationNumber String?       @unique
+  phone              String?
+  email              String?
+  consultationFee    Decimal?      @db.Decimal(10, 2)
+  isActive           Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  appointments       Appointment[]
+  labOrders          LabOrder[]
+
+  @@index([isActive, name])
+}
+
+model CentreSettings {
+  id                   String   @id @default("default")
+  name                 String   @default("MediCore Diagnostics")
+  loginTitle           String   @default("Care, connected. Operations, simplified.")
+  smsApiKeyEncrypted   String?
+  smsSenderId          String?
+  updatedAt            DateTime @default(now()) @updatedAt
+  updatedBy            String?
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  patientId String
+  doctorId  String?
+  date      DateTime
+  time      String
+  status    String   @default("scheduled")
+
+  patient Patient @relation(fields: [patientId], references: [id])
+  doctor  Doctor? @relation(fields: [doctorId], references: [id])
+
+  @@index([date, time])
+  @@index([doctorId, date(sort: Desc)])
+}
+
+model DiagnosticTest {
+  id         String     @id @default(cuid())
+  name       String
+  department String
+  price      Decimal    @db.Decimal(10, 2)
+  isActive   Boolean    @default(true)
+  labOrders  LabOrder[]
+  inventoryMappings TestInventoryMapping[]
+  inventoryMovements InventoryMovement[]
+
+  @@index([isActive, department, name])
+}
+
+model LabOrder {
+  id                    String   @id @default(cuid())
+  patientId             String
+  diagnosticTestId      String
+  doctorId              String?
+  status                String   @default("awaiting_sample")
+  testPrice             Decimal  @default(0) @db.Decimal(10, 2)
+  sampleBarcode         String?  @unique
+  specimenType          String?
+  sampleStatus          String   @default("pending")
+  sampleCollectedAt     DateTime?
+  sampleCollectedById   String?
+  technicianId          String?
+  technicianAssignedAt  DateTime?
+  createdAt             DateTime @default(now())
+
+  patient        Patient        @relation(fields: [patientId], references: [id])
+  diagnosticTest DiagnosticTest @relation(fields: [diagnosticTestId], references: [id])
+  doctor         Doctor?        @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  sampleCollectedBy User?      @relation("SampleCollectedBy", fields: [sampleCollectedById], references: [id], onDelete: SetNull)
+  technician     User?          @relation("LabTechnicianAssigned", fields: [technicianId], references: [id], onDelete: SetNull)
+  report         TestReport?
+  invoice        Invoice?
+  inventoryMovements InventoryMovement[]
+  workflowEvents WorkflowEvent[]
+
+  @@index([createdAt(sort: Desc)])
+  @@index([patientId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([technicianId, status])
+}
+
+model TestReport {
+  id              String    @id @default(cuid())
+  labOrderId      String    @unique
+  status          String    @default("draft")
+  resultText      String?
+  resultEnteredAt DateTime?
+  enteredById     String?
+  verifiedAt      DateTime?
+  verifiedById    String?
+  approvedAt      DateTime?
+  approvedById    String?
+  deliveredAt     DateTime?
+
+  labOrder  LabOrder @relation(fields: [labOrderId], references: [id])
+  enteredBy User?    @relation("ReportEnteredBy", fields: [enteredById], references: [id], onDelete: SetNull)
+  verifiedBy User?   @relation("ReportVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  approvedBy User?   @relation("ReportApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, resultEnteredAt])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  patientId     String
+  subtotal      Decimal  @default(0) @db.Decimal(10, 2)
+  discount      Decimal  @default(0) @db.Decimal(10, 2)
+  total         Decimal  @db.Decimal(10, 2)
+  paid          Decimal  @default(0) @db.Decimal(10, 2)
+  paymentMethod String   @default("cash")
+  status        String   @default("unpaid")
+  createdAt     DateTime @default(now())
+  labOrderId    String?  @unique
+
+  patient  Patient          @relation(fields: [patientId], references: [id])
+  labOrder LabOrder?        @relation(fields: [labOrderId], references: [id], onDelete: SetNull)
+  payments InvoicePayment[]
+
+  @@index([createdAt(sort: Desc)])
+}
+
+model InvoicePayment {
+  id            String   @id @default(cuid())
+  invoiceId     String
+  amount        Decimal  @db.Decimal(10, 2)
+  paymentMethod String   @default("cash")
+  paidAt        DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([paidAt])
+  @@index([invoiceId, paidAt(sort: Desc)])
+}
+
+model InventoryItem {
+  id               String                  @id @default(cuid())
+  name             String
+  sku              String                  @unique
+  category         String                  @default("consumable")
+  quantity         Decimal                 @default(0) @db.Decimal(12, 3)
+  reorderLevel     Decimal                 @default(10) @db.Decimal(12, 3)
+  unit             String                  @default("pcs")
+  packSize         String?
+  storageCondition String?
+  supplierId       String?
+  isActive         Boolean                 @default(true)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @default(now()) @updatedAt
+  supplier         Supplier?               @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  batches          InventoryBatch[]
+  mappings         TestInventoryMapping[]
+  movements        InventoryMovement[]
+  purchaseLines    PurchaseOrderLine[]
+  goodsReceiptLines GoodsReceiptLine[]
+
+  @@index([category, isActive])
+  @@index([quantity, reorderLevel])
+  @@index([isActive, quantity, name])
+}
+
+model Supplier {
+  id             String             @id @default(cuid())
+  name           String
+  contactPerson  String?
+  phone          String?
+  email          String?
+  address        String?
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  items          InventoryItem[]
+  purchaseOrders PurchaseOrder[]
+  goodsReceipts  GoodsReceipt[]
+
+  @@index([isActive, name])
+}
+
+model InventoryBatch {
+  id               String             @id @default(cuid())
+  itemId           String
+  batchNumber      String
+  manufacturedAt   DateTime?
+  expiresAt        DateTime
+  purchasePrice    Decimal            @db.Decimal(12, 2)
+  quantityReceived Decimal            @db.Decimal(12, 3)
+  quantityOnHand   Decimal            @db.Decimal(12, 3)
+  createdAt        DateTime           @default(now())
+  item             InventoryItem      @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  movements        InventoryMovement[]
+  receiptLines     GoodsReceiptLine[]
+
+  @@unique([itemId, batchNumber])
+  @@index([itemId, expiresAt, quantityOnHand])
+  @@index([expiresAt, quantityOnHand])
+}
+
+model PurchaseOrder {
+  id              String              @id @default(cuid())
+  orderNumber     String              @unique
+  supplierId      String
+  status          String              @default("draft")
+  invoiceNumber   String?
+  payableAmount   Decimal             @default(0) @db.Decimal(12, 2)
+  paidAmount      Decimal             @default(0) @db.Decimal(12, 2)
+  orderedAt       DateTime             @default(now())
+  expectedAt      DateTime?
+  createdBy       String?
+  supplier        Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  lines           PurchaseOrderLine[]
+  goodsReceipts   GoodsReceipt[]
+
+  @@index([supplierId, orderedAt])
+  @@index([status, orderedAt])
+  @@index([orderedAt(sort: Desc)])
+}
+
+model PurchaseOrderLine {
+  id                String        @id @default(cuid())
+  purchaseOrderId   String
+  itemId            String
+  quantityOrdered   Decimal       @db.Decimal(12, 3)
+  quantityReceived  Decimal       @default(0) @db.Decimal(12, 3)
+  unitPrice         Decimal       @db.Decimal(12, 2)
+  purchaseOrder     PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  item              InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseOrderId])
+}
+
+model GoodsReceipt {
+  id             String              @id @default(cuid())
+  grnNumber      String              @unique
+  supplierId     String
+  purchaseOrderId String?
+  invoiceNumber  String?
+  receivedAt     DateTime            @default(now())
+  payableAmount Decimal             @default(0) @db.Decimal(12, 2)
+  paidAmount    Decimal             @default(0) @db.Decimal(12, 2)
+  createdBy      String?
+  supplier       Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  purchaseOrder  PurchaseOrder?      @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  lines          GoodsReceiptLine[]
+  payments       SupplierPayment[]
+
+  @@index([supplierId, receivedAt])
+  @@index([receivedAt(sort: Desc)])
+}
+
+model SupplierPayment {
+  id             String       @id @default(cuid())
+  goodsReceiptId String
+  amount         Decimal      @db.Decimal(12, 2)
+  paidAt         DateTime     @default(now())
+  reference      String?
+  note           String?
+  actorId        String?
+  goodsReceipt   GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Restrict)
+
+  @@index([goodsReceiptId, paidAt])
+}
+
+model GoodsReceiptLine {
+  id              String          @id @default(cuid())
+  goodsReceiptId  String
+  itemId          String
+  batchId         String
+  quantity        Decimal         @db.Decimal(12, 3)
+  unitPrice       Decimal         @db.Decimal(12, 2)
+  goodsReceipt    GoodsReceipt    @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  item            InventoryItem   @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  batch           InventoryBatch  @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@index([goodsReceiptId])
+}
+
+model TestInventoryMapping {
+  id                 String         @id @default(cuid())
+  diagnosticTestId   String
+  inventoryItemId    String
+  quantityPerTest    Decimal        @db.Decimal(12, 3)
+  diagnosticTest     DiagnosticTest @relation(fields: [diagnosticTestId], references: [id], onDelete: Cascade)
+  inventoryItem      InventoryItem  @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  @@unique([diagnosticTestId, inventoryItemId])
+  @@index([inventoryItemId])
+}
+
+model InventoryMovement {
+  id              String          @id @default(cuid())
+  itemId          String
+  batchId         String?
+  kind            String
+  quantity        Decimal         @db.Decimal(12, 3)
+  reason          String?
+  department      String?
+  testId          String?
+  labOrderId      String?
+  reference       String?
+  actorId         String?
+  createdAt       DateTime        @default(now())
+  item            InventoryItem   @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  batch           InventoryBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  diagnosticTest  DiagnosticTest? @relation(fields: [testId], references: [id], onDelete: SetNull)
+  labOrder        LabOrder?       @relation(fields: [labOrderId], references: [id], onDelete: SetNull)
+
+  @@index([itemId, createdAt])
+  @@index([kind, createdAt])
+  @@index([department, createdAt])
+  @@index([testId, createdAt])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Expense {
+  id         String   @id @default(cuid())
+  title      String
+  amount     Decimal  @db.Decimal(10, 2)
+  incurredOn DateTime @default(now())
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  role          String?
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  sessions      Session[]
+  accounts      Account[]
+  collectedSamples LabOrder[] @relation("SampleCollectedBy")
+  assignedLabOrders LabOrder[] @relation("LabTechnicianAssigned")
+  enteredReports TestReport[] @relation("ReportEnteredBy")
+  verifiedReports TestReport[] @relation("ReportVerifiedBy")
+  approvedReports TestReport[] @relation("ReportApprovedBy")
+  workflowEvents WorkflowEvent[]
+
+  @@unique([email])
+  @@index([createdAt(sort: Desc)])
+  @@map("user")
+}
+
+model WorkflowEvent {
+  id          String   @id @default(cuid())
+  labOrderId  String
+  actorId     String?
+  action      String
+  fromStatus  String?
+  toStatus    String?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  labOrder LabOrder @relation(fields: [labOrderId], references: [id], onDelete: Restrict)
+  actor    User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([labOrderId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}

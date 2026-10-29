@@ -1,26 +1,213 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary: #5d87ff;
+  --primary-dark: #4570ea;
+  --primary-light: #ecf2ff;
+  --secondary: #49beff;
+  --purple: #7460ee;
+  --purple-light: #ebe8fd;
+
+  --success: #13deb9;
+  --success-light: #e6fffa;
+  --warning: #ffae1f;
+  --warning-light: #fef5e5;
+  --danger: #fa896b;
+  --danger-light: #fbf2ef;
+  --info: #539bff;
+  --info-light: #ebf3fe;
+
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --border: #e5eaef;
+  --text-heading: #2a3547;
+  --text-body: #5a6a85;
+  --text-muted: #7c8fac;
+
+  --gradient-purple: linear-gradient(135deg, #7460ee 0%, #5d87ff 100%);
+  --gradient-cyan: linear-gradient(135deg, #49beff 0%, #13deb9 100%);
+  --gradient-bg: linear-gradient(135deg, #e8eeff 0%, #f4f0ff 100%);
+
+  --background: var(--bg);
+  --foreground: var(--text-heading);
+  --surface-raised: #f1f4f8;
+  --surface-subtle: #f7f9fc;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --primary: #83a5ff;
+  --primary-dark: #a2bbff;
+  --primary-light: #1d3154;
+  --secondary: #62c7ff;
+  --purple: #a99bff;
+  --purple-light: #2b2549;
+  --success: #43dfbd;
+  --success-light: #12382f;
+  --warning: #ffc45e;
+  --warning-light: #402f16;
+  --danger: #ff9c82;
+  --danger-light: #3d2723;
+  --info: #7db5ff;
+  --info-light: #192f4b;
+  --bg: #0b1220;
+  --card: #111b2c;
+  --border: #29364a;
+  --text-heading: #e8eef8;
+  --text-body: #c0cce0;
+  --text-muted: #9aabc4;
+  --surface-raised: #172338;
+  --surface-subtle: #131f32;
+  --gradient-bg: linear-gradient(135deg, #17243d 0%, #211d38 100%);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+  --color-secondary: var(--secondary);
+  --color-purple: var(--purple);
+  --color-purple-light: var(--purple-light);
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-danger: var(--danger);
+  --color-danger-light: var(--danger-light);
+  --color-info: var(--info);
+  --color-info-light: var(--info-light);
+  --color-surface: var(--bg);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-heading: var(--text-heading);
+  --color-body: var(--text-body);
+  --color-muted: var(--text-muted);
+
+  --color-slate-900: var(--text-heading);
+  --color-slate-800: var(--text-heading);
+  --color-slate-700: var(--text-body);
+  --color-slate-600: var(--text-body);
+  /* Keep small labels readable against white and surface backgrounds. */
+  --color-slate-500: var(--text-body);
+  --color-slate-400: var(--text-body);
+  --color-slate-300: var(--border);
+  --color-slate-200: var(--border);
+  --color-slate-100: var(--surface-raised);
+  --color-slate-50: var(--surface-subtle);
+
+  --color-blue-700: var(--primary-dark);
+  --color-blue-600: var(--primary);
+  --color-blue-500: var(--primary);
+  --color-blue-100: var(--primary-light);
+  --color-blue-50: var(--primary-light);
+  --color-emerald-700: #0ca98e;
+  --color-emerald-600: var(--success);
+  --color-emerald-500: var(--success);
+  --color-emerald-100: var(--success-light);
+  --color-emerald-50: var(--success-light);
+  --color-amber-700: #bd7900;
+  --color-amber-600: var(--warning);
+  --color-amber-500: var(--warning);
+  --color-amber-100: var(--warning-light);
+  --color-amber-50: var(--warning-light);
+  --color-rose-700: #c65e46;
+  --color-rose-600: var(--danger);
+  --color-rose-500: var(--danger);
+  --color-rose-100: var(--danger-light);
+  --color-rose-50: var(--danger-light);
+  --color-cyan-600: var(--secondary);
+  --color-violet-600: var(--purple);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dashboard-gradient {
+  background-image: var(--gradient-bg);
+}
+
+.dashboard-gradient-purple {
+  background-image: var(--gradient-purple);
+  border-color: transparent;
+}
+
+.dashboard-gradient-cyan {
+  background-image: var(--gradient-cyan);
+  border-color: transparent;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  min-width: 320px;
+}
+.fixed.inset-0.z-50 {
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+[data-theme="dark"] .bg-white { background-color: var(--card); }
+[data-theme="dark"] .border-white { border-color: var(--border); }
+[data-theme="dark"] [class~="text-[#8f3d2e]"] { color: #ffad99; }
+[data-theme="dark"] [class~="text-[#a64e3a]"] { color: #ffad99; }
+[data-theme="dark"] [class~="text-[#956000]"],
+[data-theme="dark"] [class~="text-[#bd7900]"] { color: #ffd27b; }
+* { box-sizing: border-box; }
+
+/* Give every actionable control consistent pointer and keyboard feedback. */
+a[href], button:not(:disabled), [role="button"], summary { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+a[href], button:not(:disabled) { -webkit-tap-highlight-color: transparent; }
+a[href]:focus-visible, button:focus-visible, [role="button"]:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body.patient-report-print-mode { background: #fff !important; color: #111 !important; }
+  body.patient-report-print-mode * { visibility: hidden !important; }
+  body.patient-report-print-mode .patient-report-print-sheet,
+  body.patient-report-print-mode .patient-report-print-sheet * { visibility: visible !important; }
+  body.patient-report-print-mode .patient-report-print-sheet {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fff !important;
+    color: #111 !important;
+    box-shadow: none !important;
+    font-family: Arial, "Nirmala UI", sans-serif !important;
+    font-size: 11pt !important;
+    break-inside: avoid;
+  }
+  body.patient-report-print-mode .patient-report-print-sheet * { color: #111 !important; }
+  body.patient-report-print-mode button { display: none !important; }
+  body.invoice-print-mode { background: #fff !important; color: #111 !important; }
+  body.invoice-print-mode * { visibility: hidden !important; }
+  body.invoice-print-mode .invoice-print-sheet,
+  body.invoice-print-mode .invoice-print-sheet * { visibility: visible !important; }
+  body.invoice-print-mode .invoice-print-sheet {
+    display: block !important;
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fff !important;
+    color: #111 !important;
+    box-shadow: none !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 12pt !important;
+  }
+  body.invoice-print-mode .invoice-print-sheet * { color: #111 !important; }
+  body.invoice-print-mode .invoice-print-sheet .text-slate-500 { color: #555 !important; }
 }
